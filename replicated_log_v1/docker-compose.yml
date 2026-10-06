@@ -1,0 +1,72 @@
+services:
+  master:
+    build: .
+    container_name: master
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      NODE_NAME: master
+      SECONDARIES: http://secondary1:8000,http://secondary2:8000
+      HTTP_TIMEOUT: 15
+    volumes:
+      - ./logs/master:/app/logs
+    depends_on:
+      secondary1:
+        condition: service_healthy
+      secondary2:
+        condition: service_healthy
+
+  secondary1:
+    build: .
+    container_name: secondary1
+    command: uvicorn app.secondary_api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8001:8000"
+    environment:
+      NODE_NAME: secondary1
+      DELAY: ${S1_DELAY:-0}
+    volumes:
+      - ./logs/secondary1:/app/logs
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/messages')"
+        ]
+      interval: 2s
+      timeout: 1s
+      retries: 10
+
+  secondary2:
+    build: .
+    container_name: secondary2
+    command: uvicorn app.secondary_api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8002:8000"
+    environment:
+      NODE_NAME: secondary2
+      DELAY: ${S2_DELAY:-0}
+    volumes:
+      - ./logs/secondary2:/app/logs
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/messages')"
+        ]
+      interval: 2s
+      timeout: 1s
+      retries: 10
+
+  test:
+    build: .
+    command: python -m tests.mocked_test
+    environment:
+      NODE_NAME: test
+    profiles:
+      - test
