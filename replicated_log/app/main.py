@@ -6,6 +6,7 @@ from app.transport import HttpTransport
 from app.schema import Message
 from app.log_config import setup_logging
 import os
+from fastapi import HTTPException
 
 setup_logging()
 app = FastAPI()
@@ -28,7 +29,13 @@ master = MasterNode(
 @app.post("/messages")
 def add_message(data: Message):
     t_start = time.perf_counter()
-    master.append_message(data.message)
+    try:
+        master.append_message(data.message, data.write_concern)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
     t_end = time.perf_counter()
     return {"status": "ok", "time to response (s)": round(t_end - t_start, 3)}
 

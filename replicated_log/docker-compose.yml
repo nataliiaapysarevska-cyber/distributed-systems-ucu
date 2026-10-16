@@ -1,7 +1,7 @@
 services:
   master:
     build: .
-    container_name: master
+#    container_name: master
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
@@ -19,7 +19,7 @@ services:
 
   secondary1:
     build: .
-    container_name: secondary1
+#    container_name: secondary1
     command: uvicorn app.secondary_api:app --host 0.0.0.0 --port 8000
     ports:
       - "8001:8000"
@@ -42,7 +42,7 @@ services:
 
   secondary2:
     build: .
-    container_name: secondary2
+#    container_name: secondary2
     command: uvicorn app.secondary_api:app --host 0.0.0.0 --port 8000
     ports:
       - "8002:8000"
@@ -68,5 +68,19 @@ services:
     command: python -m tests.mocked_test
     environment:
       NODE_NAME: test
+      MASTER_URL: http://master:8000
+      SECONDARY_URL_1: http://secondary1:8000
+      SECONDARY_URL_2: http://secondary2:8000
     profiles:
       - test
+
+  acceptance:
+    build: .
+    command: python -m tests.acceptance_test
+    environment:
+      NODE_NAME: acceptance
+      MASTER_URL: http://master:8000
+      SECONDARY_URL_1: http://secondary1:8000
+      SECONDARY_URL_2: http://secondary2:8000
+    profiles:
+      - acceptance
